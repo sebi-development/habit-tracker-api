@@ -5,6 +5,7 @@ import habitRoutes from './routes/habitRoutes.ts'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import cors from 'cors'
+import { isTest } from '../env.ts'
 
 const app = express()
 app.use(helmet())
@@ -15,7 +16,7 @@ app.use(morgan('dev', {
   skip: () => isTest()
 }))
 app.get('/health', (req, res) => {
-
+  res.json({ status: 'ok' })
 })
 
 app.use('/api/auth', authRoutes)

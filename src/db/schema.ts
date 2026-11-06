@@ -1,6 +1,7 @@
 import { pgTable, uuid, varchar, timestamp, text, boolean, integer } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import {createInsertSchema, createSelectSchema} from 'drizzle-zod'
+import { createSelectSchema } from 'drizzle-zod'
+import { z } from 'zod'
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -43,22 +44,22 @@ export const tags = pgTable('tags', {
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 })
 
-export const habitTags = pgTable('tags', {
+export const habitTags = pgTable('habit_tags', {
   id: uuid('id').primaryKey().defaultRandom(),
   habitId: uuid('habit_id').references(() => habits.id, {
     onDelete: 'cascade'
   }).notNull(),
-  tagId: uuid('habit_id').references(() => tags.id, {
+  tagId: uuid('tag_id').references(() => tags.id, {
     onDelete: 'cascade'
   }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
-export const userRelations = relations(users, ({many}) => ({
+export const userRelations = relations(users, ({ many }) => ({
   habits: many(habits),
 }))
 
-export const habitsRelations = relations(habits, ({one, many}) => ({
+export const habitsRelations = relations(habits, ({ one, many }) => ({
   user: one(users, {
     fields: [habits.userId],
     references: [users.id],
@@ -67,20 +68,20 @@ export const habitsRelations = relations(habits, ({one, many}) => ({
   habitTags: many(habitTags)
 }))
 
-export const entriesRelations = relations(entries, ({one}) => ({
+export const entriesRelations = relations(entries, ({ one }) => ({
   habit: one(habits, {
     fields: [entries.habitId],
     references: [habits.id]
-  }), 
+  }),
 }))
 
-export const tagsRelations = relations(tags, ({many}) => ({
+export const tagsRelations = relations(tags, ({ many }) => ({
   habitTags: many(habitTags),
 }))
 
-export const habitTagsRelations = relations(habitTags, ({one}) => ({
+export const habitTagsRelations = relations(habitTags, ({ one }) => ({
   habit: one(habits, {
-    fields: [habitTags.id],
+    fields: [habitTags.habitId],
     references: [habits.id]
   }),
   tag: one(tags, {
@@ -90,11 +91,19 @@ export const habitTagsRelations = relations(habitTags, ({one}) => ({
 }))
 
 export type User = typeof users.$inferSelect
+export type NewUser = typeof users.$inferInsert
 export type Habit = typeof habits.$inferSelect
 export type Entries = typeof entries.$inferSelect
 export type Tag = typeof tags.$inferSelect
 export type HabitTag = typeof habitTags.$inferSelect
 
 
-export const insertUserSchema = createInsertSchema(users)
+// Only the fields a client may send; id/timestamps are set by the db.
+export const insertUserSchema = z.object({
+  email: z.email().max(255),
+  username: z.string().min(3).max(50),
+  password: z.string().min(8).max(72), // bcrypt ignores bytes past 72
+  firstName: z.string().max(50).optional(),
+  lastName: z.string().max(50).optional(),
+})
 export const selectUserSchema = createSelectSchema(users)
