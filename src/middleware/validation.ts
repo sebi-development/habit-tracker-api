@@ -1,66 +1,36 @@
 import type { Request, Response, NextFunction } from 'express'
-import { type ZodSchema, ZodError } from 'zod'
+import type { ZodType } from 'zod'
 
-export const validateBody = (schema: ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const validateData = schema.parse(req.body)
-      req.body = validateData
-      next()
+type Source = 'body' | 'params' | 'query'
 
-    } catch (e) {
-      if (e instanceof ZodError) {
-        return res.status(400).json({
-          error: 'Validation failed',
-          details: e.issues.map(err => ({
-            field: err.path.join('.'),
-            message: err.message
-          }))
-        })
-      }
-      next(e)
-    }
-  }
+const errorLabels: Record<Source, string> = {
+  body: 'Validation failed',
+  params: 'Invalid params',
+  query: 'Invalid query params',
 }
 
-export const validateParams = (schema: ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      schema.parse(req.params)
-      next()
+// safeParse returns a result instead of throwing, so no try/catch needed.
+const validate = (source: Source) => (schema: ZodType) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req[source])
 
-    } catch (e) {
-      if (e instanceof ZodError) {
-        return res.status(400).json({
-          error: 'Invalid Params',
-          details: e.issues.map(err => ({
-            field: err.path.join('.'),
-            message: err.message
-          }))
-        })
-      }
-      next(e)
+    if (!result.success) {
+      res.status(400).json({
+        error: errorLabels[source],
+        details: result.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message,
+        })),
+      })
+      return
     }
-  }
-}
 
-export const validateQuery = (schema: ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      schema.parse(req.query)
-      next()
-
-    } catch (e) {
-      if (e instanceof ZodError) {
-        return res.status(400).json({
-          error: 'Invalid Query Params',
-          details: e.issues.map(err => ({
-            field: err.path.join('.'),
-            message: err.message
-          }))
-        })
-      }
-      next(e)
-    }
+    // Replace the body with zod's output: unknown keys stripped, values trimmed.
+    // (req.query is read-only in Express 5, so only the body is replaced.)
+    if (source === 'body') req.body = result.data
+    next()
   }
-}
+
+export const validateBody = validate('body')
+export const validateParams = validate('params')
+export const validateQuery = validate('query')
