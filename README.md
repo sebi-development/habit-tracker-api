@@ -1,5 +1,9 @@
 # Habit Tracker API
 
+**Live API:** https://habit-api-6lqk.onrender.com ([health check](https://habit-api-6lqk.onrender.com/health/ready))
+
+> Hosted on a free tier, so the first request after a period of inactivity can take up to a minute while the service and database wake up.
+
 A REST API for tracking daily habits, built with Node.js, Express 5, PostgreSQL and TypeScript. Users register, log in with JWT authentication and manage their own habits and tags.
 
 The focus of the project is a production-style backend: end-to-end type safety, request validation, centralized error handling, rate limiting and an integration test suite that runs against a real database.
@@ -46,16 +50,16 @@ Base path: `/api`. Protected routes need `Authorization: Bearer <token>`.
 | GET | `/api/users/:id` | yes | Your full profile for your own id, public fields for anyone else's |
 | PUT | `/api/users/:id` | yes | Update your own profile (403 for anyone else's) |
 
-Example:
+Try it against the live API (replace the URL with `http://localhost:3000` to run it locally):
 
 ```bash
 # Register
-curl -X POST http://localhost:3000/api/auth/register \
+curl -X POST https://habit-api-6lqk.onrender.com/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"me@example.com","username":"me","password":"supersecret1"}'
 
 # Create a habit (use the token from the response above)
-curl -X POST http://localhost:3000/api/habits \
+curl -X POST https://habit-api-6lqk.onrender.com/api/habits \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"name":"Read 20 pages","frequency":"daily","targetCount":1}'
