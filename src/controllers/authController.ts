@@ -6,8 +6,6 @@ import { comparePasswords, hashPassword } from '../utils/passwords.ts'
 import { AppError } from '../utils/errors.ts'
 import { eq } from 'drizzle-orm'
 
-// No try/catch: Express 5 sends any thrown error to errorHandler, which also
-// turns a duplicate email/username (unique violation) into a 409.
 export const register = async (req: Request<any, any, RegisterInput>, res: Response) => {
   const { email, username, password, firstName, lastName } = req.body
   const hashedPassword = await hashPassword(password)

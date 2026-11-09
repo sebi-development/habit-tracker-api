@@ -1,9 +1,12 @@
 import bcrypt from 'bcrypt'
 import db from "./connection.ts";
 import { users, habits, entries, tags, habitTags } from './schema.ts'
-import { env } from '../../env.ts'
+import { env, isProd } from '../../env.ts'
 
 const seed = async () => {
+  // The first thing seed does is delete every row
+  if (isProd()) throw new Error('Refusing to seed: APP_STAGE is production')
+
   console.log('Starting db seed...');
   try {
     console.log('Clearing existing data...');
@@ -52,7 +55,10 @@ const seed = async () => {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  seed().then(() => process.exit(0)).catch(() => process.exit(1))
+  seed().then(() => process.exit(0)).catch((e) => {
+    console.error(e instanceof Error ? e.message : e)
+    process.exit(1)
+  })
 }
 
 export default seed

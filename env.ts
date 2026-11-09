@@ -1,7 +1,11 @@
 import { env as loadEnv } from 'custom-env'
-import { z, ZodError } from 'zod'
+import { z } from 'zod'
 
-process.env.APP_STAGE = process.env.APP_STAGE || 'dev'
+// Hosting platforms usually set NODE_ENV=production but not our own APP_STAGE.
+// Without this fallback a deployed app would silently run as 'dev' and try to
+// load a .env file that doesn't exist on the server.
+process.env.APP_STAGE =
+  process.env.APP_STAGE || (process.env.NODE_ENV === 'production' ? 'production' : 'dev')
 
 const isProduction = process.env.APP_STAGE === 'production'
 const isDevelopment = process.env.APP_STAGE === 'dev'
@@ -20,10 +24,17 @@ const envSchema = z.object({
   DATABASE_URL: z.string().startsWith('postgresql://'),
   JWT_SECRET: z.string().min(32, 'Must be 32 characters long'),
   JWT_EXPIRES_IN: z.string().default('7d'),
-  BCRYPT_ROUNDS: z.coerce.number().min(10).max(20).default(12)
+  BCRYPT_ROUNDS: z.coerce.number().min(10).max(20).default(12),
+  // Comma separated list of browser origins allowed to call the API
+  ALLOWED_ORIGINS: z
+    .string()
+    .default('')
+    .transform((value) => value.split(',').map((origin) => origin.trim()).filter(Boolean)),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().positive().default(15 * 60 * 1000),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().positive().default(100)
 })
 
-export type Env = z.infer<typeof envSchema>
+export type Env = z.output<typeof envSchema>
 let env: Env
 
 try {

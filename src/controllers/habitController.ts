@@ -11,9 +11,6 @@ import {
 import { and, desc, eq } from 'drizzle-orm'
 import { AppError } from '../utils/errors.ts'
 
-// No try/catch in these handlers: Express 5 forwards anything thrown (or any
-// rejected promise) to errorHandler. An unknown tagId (foreign key violation)
-// becomes a 400 there.
 
 // The same tag sent twice would create two identical habit_tags rows.
 const uniqueTagLinks = (habitId: string, tagIds: string[]) =>

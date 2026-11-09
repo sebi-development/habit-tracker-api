@@ -13,8 +13,6 @@ export const notFound: RequestHandler = (req, res) => {
   res.status(404).json({ error: `Route ${req.method} ${req.originalUrl} not found` })
 }
 
-// Express 5 forwards errors thrown in (async) handlers here automatically.
-// The 4 parameters are what tells Express this is an error handler.
 export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   if (res.headersSent) return next(err)
 
