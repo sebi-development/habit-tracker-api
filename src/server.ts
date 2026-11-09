@@ -2,6 +2,7 @@ import express from 'express'
 import authRoutes from './routes/authRoute.ts'
 import userRoutes from './routes/userRoutes.ts'
 import habitRoutes from './routes/habitRoutes.ts'
+import healthRoutes from './routes/healthRoutes.ts'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import cors from 'cors'
@@ -26,9 +27,8 @@ app.use(morgan(isProd() ? 'combined' : 'dev', {
   skip: () => isTest()
 }))
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' })
-})
+// Before the rate limiter: platform health checks poll this constantly
+app.use('/health', healthRoutes)
 
 const apiLimiter = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS,

@@ -139,3 +139,31 @@ export type UpdateHabitInput = z.infer<typeof updateHabitSchema>
 
 export const habitParamsSchema = z.object({ id: z.uuid('Invalid habit id') })
 export type HabitParams = z.infer<typeof habitParamsSchema>
+
+// POST /habits/:id/complete. The body is optional: no body means "done just now".
+export const completeHabitSchema = z.object({
+  note: z.string().trim().max(500).optional(),
+  // ISO date string, lets you log a completion for an earlier day
+  completionDate: z.coerce.date()
+    .refine((date) => date <= new Date(), 'Completion date cannot be in the future')
+    .optional(),
+}).default({})
+export type CompleteHabitInput = z.infer<typeof completeHabitSchema>
+
+// ---- Users ----
+export const userParamsSchema = z.object({ id: z.uuid('Invalid user id') })
+export type UserParams = z.infer<typeof userParamsSchema>
+
+// Profile fields a user may change (not the password; not the id/timestamps).
+export const updateUserSchema = insertUserSchema
+  .omit({ password: true })
+  .partial()
+  .refine((body) => Object.keys(body).length > 0, 'Provide at least one field to update')
+export type UpdateUserInput = z.infer<typeof updateUserSchema>
+
+// Query strings are text, so coerce to numbers. Output type has both set.
+export const listUsersQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+})
+export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>

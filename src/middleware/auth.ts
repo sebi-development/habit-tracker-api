@@ -8,7 +8,8 @@ export interface AuthenticatedRequest<
   P = Record<string, string>,
   ResBody = any,
   ReqBody = any,
-> extends Request<P, ResBody, ReqBody> {
+  ReqQuery = Request['query'],
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
   user?: JwtPayload
 }
 

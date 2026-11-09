@@ -19,10 +19,11 @@ The focus of the project is a production-style backend: end-to-end type safety, 
 ## Features
 
 - **Auth:** register and log in with an email or a username. Passwords are hashed with bcrypt, and failed logins return the same error for an unknown user and a wrong password so accounts can't be enumerated.
-- **Habits:** create, list and update habits. Habits belong to a user and can be tagged. Every query is scoped to the authenticated user, so one user can never read or change another's data.
+- **Habits:** create, list, view, update and delete habits, and log completions against them. Habits belong to a user and can be tagged. Every query is scoped to the authenticated user, so one user can never read or change another's data.
 - **Validation:** every request body and URL parameter is checked with Zod. Unknown fields are stripped, so a client can't set fields such as `userId`.
 - **Error handling:** controllers have no `try/catch`. Express 5 forwards thrown errors to a single handler that maps them to the right status code, including Postgres unique (409) and foreign key (400) violations, and never leaks internals on a 500.
 - **Safe writes:** multi-table changes (a habit and its tags) run in a transaction.
+- **Privacy:** other users only ever see your `id`, `username` and join date. Email and name are visible to you alone, and the password hash is never selected from the database.
 - **Production hardening:** per-IP rate limits (stricter on `/api/auth`), request size limit, CORS allow-list, graceful shutdown on `SIGTERM`, and a database pool that survives dropped connections.
 
 ## API
@@ -31,12 +32,19 @@ Base path: `/api`. Protected routes need `Authorization: Bearer <token>`.
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/health` | no | Liveness check |
+| GET | `/health` | no | Liveness check (uptime and timestamp) |
+| GET | `/health/ready` | no | Readiness check: 200 if the database is reachable, 503 if not |
 | POST | `/api/auth/register` | no | Create an account, returns the user and a token |
 | POST | `/api/auth/login` | no | Log in with `email` or `username` plus `password` |
 | GET | `/api/habits` | yes | List your habits with their tags |
 | POST | `/api/habits` | yes | Create a habit, optionally with `tagIds` |
+| GET | `/api/habits/:id` | yes | One habit with its tags and its 30 most recent completions |
 | PATCH | `/api/habits/:id` | yes | Update any habit fields; `tagIds` replaces its tags |
+| DELETE | `/api/habits/:id` | yes | Delete a habit and its completions (204) |
+| POST | `/api/habits/:id/complete` | yes | Log a completion; optional `note` and past `completionDate` |
+| GET | `/api/users` | yes | Browse users (`id`, `username` only), paginated with `limit` and `offset` |
+| GET | `/api/users/:id` | yes | Your full profile for your own id, public fields for anyone else's |
+| PUT | `/api/users/:id` | yes | Update your own profile (403 for anyone else's) |
 
 Example:
 
@@ -120,7 +128,7 @@ pnpm test
 2. Create a **Web Service** from this repository with:
    - **Build command:** `pnpm install --frozen-lockfile --prod=false && pnpm db:migrate`
    - **Start command:** `pnpm start`
-   - **Health check path:** `/health`
+   - **Health check path:** `/health` (use this one, not `/health/ready`, which wakes a serverless database on every poll)
 3. Add the environment variables: `NODE_ENV=production`, `DATABASE_URL`, `JWT_SECRET`, and `ALLOWED_ORIGINS` with your frontend's URL.
 
 The build installs dev dependencies because `drizzle-kit`, which applies the migrations, is one. The `.node-version` file selects Node 24. Migrations run on every deploy and are skipped when there is nothing new.

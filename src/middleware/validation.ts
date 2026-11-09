@@ -25,9 +25,15 @@ const validate = (source: Source) => (schema: ZodType) =>
       return
     }
 
-    // Replace the body with zod's output: unknown keys stripped, values trimmed.
-    // (req.query is read-only in Express 5, so only the body is replaced.)
-    if (source === 'body') req.body = result.data
+    // Hand the controller zod's output instead of the raw input: unknown keys
+    // stripped, values trimmed/coerced, defaults applied.
+    if (source === 'query') {
+      // `req.query` is a getter in Express 5 and can't be assigned, but an own
+      // property on the request overrides it.
+      Object.defineProperty(req, 'query', { value: result.data, writable: true, configurable: true, enumerable: true })
+    } else {
+      req[source] = result.data
+    }
     next()
   }
 
